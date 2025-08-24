@@ -1,0 +1,103 @@
+const userModel= require('../model/user.model')
+
+async function registerController(req,res){
+const {name,email,username,password} = req.body;
+
+    const existuser = await userModel.findOne({
+        username
+    })
+
+    const existemail = await userModel.findOne({
+        email
+    })
+
+    if(existuser){
+        return res.status(401).json({
+            Message:"useranme already register"
+        })
+    }
+
+    if(existemail){
+        return res.status(401).json({
+            Message:"Mail-Id already register"
+        })
+    }
+
+    const user = await userModel.create({
+        name,email,username,password
+    })
+
+    const token = jwt.sign({
+        username:user.username
+    },process.env.JWT_SECRET)
+
+    res.cookie('token',token)
+
+    res.status(201).json({
+        Message:"Registration Success",
+        user
+    })
+
+}
+
+async function loginController(req,res){
+    const {username,password} = req.body;
+
+    const user = await userModel.findOne({
+        username:username
+
+    })
+
+    if(!user){
+        return res.status(401).json({
+            Message:"Unauthorized User"
+        })
+    }
+
+    const ispassword = password == user.password
+    
+    if(!ispassword){
+        return res.status(401).json({
+            Message:"Wrong Password"
+        })
+    }
+
+    res.status(200).json({
+        Message:"Loged In"
+    })
+}
+
+async function userController(req,res){
+    const {token} = req.cookies;
+
+    if(!token){
+        return res.status(401).json({
+            Message:"In-Valid Token"
+        })
+    }
+
+    try{
+
+        const decode = jwt.verify(token, process.env.JWT_SECRET)
+
+        const user = await userModel.findOne({
+            username:decode.username
+        }).select('-password -__v -gmail')
+
+        res.status(201).json({
+            Message:"Authorized",
+            user
+        })
+    }catch{
+        res.status(401).json({
+            Message:"Un-Authorized"
+        })
+    }
+}
+
+
+module.exports = {
+    registerController,
+    loginController,
+    userController
+}
