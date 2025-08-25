@@ -54,14 +54,11 @@ async function loginController(req,res){
         })
     }
 
-    const ispassword = password == user.password
-    
-    if(!ispassword){
-        return res.status(401).json({
-            Message:"Wrong Password"
-        })
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid password" });
     }
-
+    
     res.status(200).json({
         Message:"Loged In"
     })
