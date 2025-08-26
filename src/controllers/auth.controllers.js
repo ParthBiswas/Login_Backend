@@ -1,6 +1,10 @@
 const userModel= require('../model/user.model')
+const jwt = require('jsonwebtoken')
+const bcrypt = require('bcryptjs')
 
 async function registerController(req,res){
+    
+
 const {name,email,username,password} = req.body;
 
     const existuser = await userModel.findOne({
@@ -23,8 +27,11 @@ const {name,email,username,password} = req.body;
         })
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+
     const user = await userModel.create({
-        name,email,username,password
+        name,email,username,password: hashedPassword
     })
 
     const token = jwt.sign({
@@ -59,9 +66,18 @@ async function loginController(req,res){
       return res.status(401).json({ message: "Invalid password" });
     }
     
-    res.status(200).json({
-        Message:"Loged In"
-    })
+    const token = jwt.sign(
+  { username: user.username },
+  process.env.JWT_SECRET,
+  { expiresIn: "1h" }  // optional expiry
+ );
+
+
+
+   res.status(200).json({
+    Message: "Logged In",
+    token
+   });
 }
 
 async function userController(req,res){
@@ -79,7 +95,7 @@ async function userController(req,res){
 
         const user = await userModel.findOne({
             username:decode.username
-        }).select('-password -__v -gmail')
+        }).select('-password -__v -email')
 
         res.status(201).json({
             Message:"Authorized",
